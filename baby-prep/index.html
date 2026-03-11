@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Baby Prep Tracker</title>
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="BabyPrep">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--pink:#f8a5c2;--blue:#63cdda;--green:#78e08f;--orange:#f7d794;--red:#e55039;--bg:#faf3f0;--card:#fff;--text:#2d3436;--text2:#636e72;--shadow:0 2px 8px rgba(0,0,0,.08)}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);max-width:500px;margin:0 auto;padding-bottom:80px;min-height:100vh}
+.header{background:linear-gradient(135deg,#f8a5c2,#63cdda);padding:20px 16px 12px;color:#fff;position:sticky;top:0;z-index:100}
+.header h1{font-size:20px;margin-bottom:4px}
+.header .countdown{font-size:14px;opacity:.9}
+.header .user-bar{display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-size:11px;opacity:.9}
+.header .user-bar button{background:rgba(255,255,255,.25);border:none;color:#fff;padding:3px 10px;border-radius:10px;font-size:11px;cursor:pointer}
+.tabs{display:flex;background:#fff;border-bottom:1px solid #eee;position:sticky;top:90px;z-index:99;overflow-x:auto}
+.tab{flex:none;padding:10px 8px;text-align:center;font-size:11px;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;min-width:60px;transition:all .2s}
+.tab.active{border-bottom-color:var(--pink);color:var(--red);font-weight:600}
+.content{padding:12px}
+.timeline-bar{background:#fff;border-radius:12px;padding:12px;margin-bottom:12px;box-shadow:var(--shadow)}
+.timeline-bar h3{font-size:13px;color:var(--text2);margin-bottom:8px}
+.progress-wrap{background:#eee;border-radius:8px;height:8px;overflow:hidden}
+.progress-fill{height:100%;border-radius:8px;background:linear-gradient(90deg,var(--pink),var(--blue));transition:width .3s}
+.stats{display:flex;justify-content:space-between;margin-top:6px;font-size:11px;color:var(--text2)}
+.item-card{background:#fff;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:var(--shadow);border-left:4px solid var(--pink)}
+.item-card.cat-1{border-left-color:var(--blue)}
+.item-card.cat-2{border-left-color:var(--green)}
+.item-card.cat-3{border-left-color:var(--orange)}
+.item-card.cat-4{border-left-color:#a29bfe}
+.item-card.cat-5{border-left-color:#fd79a8}
+.item-card.cat-6{border-left-color:#e17055}
+.item-card.cat-7{border-left-color:#00b894}
+.item-card.done{opacity:.55}
+.item-card .top{display:flex;justify-content:space-between;align-items:center}
+.item-card .name{font-size:15px;font-weight:600}
+.item-card .deadline{font-size:11px;color:var(--text2)}
+.item-card .deadline.urgent{color:var(--red);font-weight:600}
+.item-card .meta{margin-top:6px;font-size:12px;color:var(--text2)}
+.item-card .notes{margin-top:6px;font-size:12px;color:var(--text2);background:#f9f9f9;padding:6px 8px;border-radius:6px;word-break:break-all}
+.search-row{margin-top:6px;display:flex;flex-wrap:wrap;gap:6px}
+.search-btn{display:inline-block;font-size:11px;padding:3px 8px;border-radius:12px;background:#f0f0f0;color:var(--text);text-decoration:none;cursor:pointer;border:none}
+.search-btn:hover{background:#e0e0e0}
+.item-card .actions{margin-top:8px;display:flex;gap:8px;justify-content:flex-end}
+.item-card .actions button{border:none;background:none;font-size:18px;cursor:pointer;padding:2px 6px}
+.fab{position:fixed;bottom:20px;right:20px;width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#f8a5c2,#63cdda);color:#fff;border:none;font-size:28px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.2);z-index:200;display:flex;align-items:center;justify-content:center}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:300;display:flex;align-items:flex-end;justify-content:center}
+.modal{background:#fff;border-radius:16px 16px 0 0;width:100%;max-width:500px;max-height:85vh;overflow-y:auto;padding:20px 16px 30px}
+.modal h2{font-size:18px;margin-bottom:14px}
+.form-group{margin-bottom:12px}
+.form-group label{display:block;font-size:13px;color:var(--text2);margin-bottom:4px}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:14px;outline:none}
+.form-group textarea{height:60px;resize:vertical}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--pink)}
+.btn-row{display:flex;gap:10px;margin-top:16px}
+.btn{flex:1;padding:12px;border:none;border-radius:10px;font-size:15px;cursor:pointer;font-weight:600}
+.btn-primary{background:linear-gradient(135deg,#f8a5c2,#63cdda);color:#fff}
+.btn-secondary{background:#f0f0f0;color:var(--text)}
+.btn-danger{background:var(--red);color:#fff;flex:0.5}
+.empty{text-align:center;padding:40px 16px;color:var(--text2);font-size:14px}
+.filter-row{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.filter-chip{padding:5px 12px;border-radius:14px;font-size:12px;border:1px solid #ddd;background:#fff;cursor:pointer}
+.filter-chip.active{background:var(--pink);color:#fff;border-color:var(--pink)}
+.suggested{background:#fffbe6;border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px}
+.suggested strong{color:var(--red)}
+.preset-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+.preset-btn{padding:8px;border:1px dashed #ccc;border-radius:8px;background:none;font-size:12px;cursor:pointer;text-align:left}
+.preset-btn:hover{background:#f9f9f9}
+/* Links */
+.links-section{margin-top:8px}
+.link-tag{display:inline-flex;align-items:center;gap:3px;font-size:11px;padding:4px 10px;border-radius:14px;text-decoration:none;margin:2px 3px 2px 0;color:#fff;cursor:pointer;border:none;line-height:1.3}
+.link-tag-xiaohongshu{background:#fe2c55}.link-tag-weibo{background:#ff8200}.link-tag-douyin{background:#111}.link-tag-bilibili{background:#00a1d6}.link-tag-youtube{background:#ff0000}.link-tag-amazon{background:#ff9900}.link-tag-target{background:#cc0000}.link-tag-walmart{background:#0071dc}.link-tag-taobao{background:#ff5000}.link-tag-jd{background:#e4393c}.link-tag-costco{background:#e31837}.link-tag-buybuybaby{background:#5b9bd5}.link-tag-babylist{background:#ff6b81}.link-tag-other{background:#636e72}
+.link-add-row{display:flex;gap:4px;margin-top:6px}
+.link-add-row input{flex:1;padding:5px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px}
+.link-add-row button{padding:5px 10px;border:none;border-radius:6px;background:var(--pink);color:#fff;font-size:12px;cursor:pointer;white-space:nowrap}
+/* Price */
+.price-section{margin-top:8px;background:#f0faf0;border-radius:8px;padding:8px 10px}
+.price-section .price-header{display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-bottom:6px}
+.price-section .price-current{font-size:16px;font-weight:700;color:#27ae60}
+.price-chart{width:100%;height:50px;margin-top:4px}
+.price-history-row{display:flex;justify-content:space-between;font-size:11px;padding:2px 0;border-bottom:1px solid #eee}
+.price-add-row{display:flex;gap:6px;margin-top:6px}
+.price-add-row input{flex:1;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px}
+.price-add-row select{padding:6px 4px;border:1px solid #ddd;border-radius:6px;font-size:12px;max-width:50px}
+.price-add-row button{padding:6px 12px;border:none;border-radius:6px;background:var(--green);color:#fff;font-size:12px;cursor:pointer;white-space:nowrap}
+.price-badge{display:inline-block;font-size:10px;padding:1px 6px;border-radius:8px;margin-left:4px;font-weight:600}
+.price-badge.drop{background:#d4efdf;color:#27ae60}
+.price-badge.rise{background:#fadbd8;color:var(--red)}
+.converted{font-size:10px;color:var(--text2);font-weight:400;margin-left:4px}
+/* Phase */
+.phase-header{background:#fff;border-radius:10px;padding:8px 12px;margin:14px 0 8px;font-size:14px;font-weight:600;color:var(--text);box-shadow:var(--shadow);display:flex;justify-content:space-between;align-items:center}
+.phase-header .phase-stats{font-size:11px;font-weight:400;color:var(--text2)}
+/* FX bar */
+.fx-bar{background:#fff;border-bottom:1px solid #eee;padding:6px 16px;display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--text2)}
+.fx-bar .fx-rate{font-weight:600;color:var(--text)}
+.fx-bar .fx-toggle{padding:3px 10px;border:1px solid #ddd;border-radius:12px;background:#fff;font-size:11px;cursor:pointer}
+.fx-bar .fx-toggle.active{background:var(--pink);color:#fff;border-color:var(--pink)}
+/* Budget */
+.budget-card{background:#fff;border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:var(--shadow)}
+.budget-card h3{font-size:14px;margin-bottom:8px}
+.budget-row{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid #f5f5f5}
+.budget-row .cat-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px}
+.budget-total{font-size:16px;font-weight:700;margin:8px 0 4px}
+/* Login */
+.login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;padding:20px;text-align:center}
+.login-screen h1{font-size:28px;margin-bottom:8px}
+.login-screen p{color:var(--text2);margin-bottom:24px;font-size:14px}
+.login-btn{display:flex;align-items:center;gap:10px;padding:14px 28px;border:1px solid #ddd;border-radius:12px;background:#fff;font-size:16px;cursor:pointer;box-shadow:var(--shadow)}
+.login-btn:hover{background:#f9f9f9}
+.login-btn img{width:20px;height:20px}
+/* Family */
+.family-bar{background:#fffbe6;padding:8px 16px;font-size:12px;text-align:center;border-bottom:1px solid #eee}
+.family-bar code{background:#fff;padding:2px 8px;border-radius:4px;font-weight:600;letter-spacing:1px}
+.family-bar button{margin-left:8px;padding:2px 8px;border:1px solid #ddd;border-radius:6px;background:#fff;font-size:11px;cursor:pointer}
+/* Print */
+.print-btn{padding:6px 14px;border:1px solid #ddd;border-radius:8px;background:#fff;font-size:12px;cursor:pointer;margin-left:6px}
+@media print{
+  .header,.tabs,.fx-bar,.fab,.modal-overlay,.search-row,.price-section,.link-add-row,.actions,.filter-row,.family-bar,.user-bar,.print-btn{display:none!important}
+  body{max-width:100%;padding:0}
+  .item-card{break-inside:avoid;box-shadow:none;border:1px solid #ddd;page-break-inside:avoid}
+  .item-card.done .name::before{content:"✅ "}
+  .phase-header{box-shadow:none;border-bottom:2px solid #333}
+}
+/* Weekly shopping */
+.weekly-card{background:linear-gradient(135deg,#fff5f5,#fff);border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:var(--shadow);border-left:4px solid var(--red)}
+.weekly-card .wk-title{font-size:13px;font-weight:600;color:var(--red);margin-bottom:6px}
+.weekly-item{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px;border-bottom:1px solid #f5f5f5}
+.weekly-item button{border:none;background:none;font-size:16px;cursor:pointer}
+/* Modal link list */
+.modal-link-item{display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid #f0f0f0;font-size:12px}
+.modal-link-item .link-url{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#0984e3}
+.modal-link-item button{border:none;background:none;color:var(--red);cursor:pointer;font-size:16px;padding:0 4px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="modal-overlay" id="modalOverlay" style="display:none" onclick="closeModalOutside(event)">
+<div class="modal" id="modal"></div>
+</div>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<script>
+// ============ Firebase Config ============
+const firebaseConfig = {
+  apiKey: "AIzaSyCz3RkOQXg2m4EJFYqWpU06hfHgdXW3jeo",
+  authDomain: "baby-prep-3309c.firebaseapp.com",
+  projectId: "baby-prep-3309c",
+  storageBucket: "baby-prep-3309c.firebasestorage.app",
+  messagingSenderId: "123333960645",
+  appId: "1:123333960645:web:9221885d1adc72627ee1ac",
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+db.enablePersistence().catch(()=>{});
+
+// ============ Constants ============
+const DUE_DATE = new Date('2025-08-28');
+const CATEGORIES = [
+  {id:0, name:'宝宝大件', color:'#f8a5c2', emoji:'🍼'},
+  {id:1, name:'宝宝小件', color:'#63cdda', emoji:'👶'},
+  {id:2, name:'产妇用品', color:'#78e08f', emoji:'🤱'},
+  {id:3, name:'Baby Registry', color:'#f7d794', emoji:'🎁'},
+  {id:4, name:'待产包', color:'#a29bfe', emoji:'🧳'},
+  {id:5, name:'证件办理', color:'#fd79a8', emoji:'📄'},
+  {id:6, name:'月子/产后', color:'#e17055', emoji:'🥣'},
+  {id:7, name:'重要待办', color:'#00b894', emoji:'⚡'}
+];
+const TABS = [{id:'all',name:'全部'},{id:'weekly',name:'📋本周'},{id:'budget',name:'💰预算'}, ...CATEGORIES.map(c=>({id:c.id,name:c.emoji+c.name})), {id:'timeline',name:'📅时间线'}];
+
+const PRESETS = {
+  0:[
+    {name:'婴儿推车',deadline:'2025-07-15',note:'建议选高景观/轻便两用',phase:'产前购买'},
+    {name:'婴儿床/床边床',deadline:'2025-07-15',note:'注意CPSC安全标准',phase:'产前购买'},
+    {name:'汽车安全座椅',deadline:'2025-07-20',note:'infant car seat, 出院必须',phase:'产前购买'},
+    {name:'婴儿浴盆',deadline:'2025-08-01',phase:'产前购买'},
+    {name:'吸奶器',deadline:'2025-07-01',note:'保险可能报销，提前问',phase:'产前购买'},
+    {name:'婴儿监控器',deadline:'2025-08-01',phase:'产前购买'},
+    {name:'摇椅/bouncer',deadline:'2025-08-01',phase:'产前购买'},
+  ],
+  1:[
+    {name:'新生儿衣服(NB/0-3m)',deadline:'2025-08-01',note:'onesie为主，不用太多',phase:'产前囤货'},
+    {name:'纸尿裤NB+1号',deadline:'2025-08-10',phase:'产前囤货'},
+    {name:'湿巾',deadline:'2025-08-10',phase:'产前囤货'},
+    {name:'奶瓶+奶嘴',deadline:'2025-07-15',note:'推荐Dr.Brown/Philips',phase:'产前囤货'},
+    {name:'包巾/swaddle',deadline:'2025-08-01',phase:'产前囤货'},
+    {name:'婴儿指甲剪',deadline:'2025-08-10',phase:'产前囤货'},
+    {name:'温度计',deadline:'2025-08-10',phase:'产前囤货'},
+    {name:'安抚奶嘴',deadline:'2025-08-10',phase:'产前囤货'},
+    {name:'婴儿洗护用品',deadline:'2025-08-01',phase:'产前囤货'},
+    {name:'屁屁膏/护臀霜',deadline:'2025-08-10',phase:'产前囤货'},
+  ],
+  2:[
+    {name:'哺乳内衣',deadline:'2025-07-15',phase:'孕期准备'},
+    {name:'哺乳枕',deadline:'2025-07-15',phase:'孕期准备'},
+    {name:'月子服',deadline:'2025-08-01',phase:'孕期准备'},
+    {name:'防溢乳垫',deadline:'2025-08-01',phase:'孕期准备'},
+    {name:'产褥垫',deadline:'2025-08-15',phase:'产后恢复'},
+    {name:'产后卫生巾',deadline:'2025-08-15',phase:'产后恢复'},
+    {name:'束腹带',deadline:'2025-08-15',phase:'产后恢复'},
+    {name:'吸管杯',deadline:'2025-08-15',note:'产后躺着喝水用',phase:'产后恢复'},
+  ],
+  3:[
+    {name:'Amazon Baby Registry',deadline:'2025-06-15',note:'提前注册拿welcome box',phase:'注册薅羊毛'},
+    {name:'Target Baby Registry',deadline:'2025-06-15',note:'welcome bag很值',phase:'注册薅羊毛'},
+    {name:'BuyBuyBaby Registry',deadline:'2025-06-15',phase:'注册薅羊毛'},
+    {name:'Babylist Registry',deadline:'2025-06-15',note:'聚合多平台',phase:'注册薅羊毛'},
+    {name:'15% completion discount',deadline:'2025-08-01',note:'注册满60天后可用',phase:'折扣使用'},
+  ],
+  4:[
+    {name:'身份证/护照',deadline:'2025-08-15',note:'夫妻双方，入院必需',phase:'妈妈 · 证件随身'},
+    {name:'医保卡/保险卡',deadline:'2025-08-15',note:'Insurance card',phase:'妈妈 · 证件随身'},
+    {name:'出生计划 Birth Plan',deadline:'2025-08-01',note:'提前和OB沟通好打印',phase:'妈妈 · 证件随身'},
+    {name:'手机充电器+充电宝',deadline:'2025-08-15',phase:'妈妈 · 证件随身'},
+    {name:'哺乳睡衣 2-3套',deadline:'2025-08-10',note:'前开扣/方便哺乳款',phase:'妈妈 · 衣物'},
+    {name:'一次性内裤',deadline:'2025-08-10',note:'产后恶露用，多备一些',phase:'妈妈 · 衣物'},
+    {name:'拖鞋(防滑)',deadline:'2025-08-10',phase:'妈妈 · 衣物'},
+    {name:'出院衣服',deadline:'2025-08-15',note:'宽松连衣裙或孕期衣服',phase:'妈妈 · 衣物'},
+    {name:'袜子',deadline:'2025-08-10',note:'产后怕冷，厚袜子',phase:'妈妈 · 衣物'},
+    {name:'哺乳内衣(待产包)',deadline:'2025-08-10',phase:'妈妈 · 衣物'},
+    {name:'产妇卫生巾(待产包)',deadline:'2025-08-10',note:'医院可能提供，先问',phase:'妈妈 · 洗护'},
+    {name:'产褥垫(待产包)',deadline:'2025-08-10',note:'一次性隔尿垫',phase:'妈妈 · 洗护'},
+    {name:'洗漱用品',deadline:'2025-08-15',note:'牙刷牙膏毛巾',phase:'妈妈 · 洗护'},
+    {name:'护肤品/润唇膏',deadline:'2025-08-15',phase:'妈妈 · 洗护'},
+    {name:'吸管杯(待产包)',deadline:'2025-08-10',note:'产后躺着喝水',phase:'妈妈 · 洗护'},
+    {name:'零食/能量棒',deadline:'2025-08-20',note:'待产时补充能量',phase:'妈妈 · 洗护'},
+    {name:'防溢乳垫(待产包)',deadline:'2025-08-10',phase:'妈妈 · 洗护'},
+    {name:'新生儿衣服(出院)',deadline:'2025-08-15',note:'NB码连体衣1-2套',phase:'宝宝 · 出院'},
+    {name:'包巾/swaddle(待产包)',deadline:'2025-08-15',phase:'宝宝 · 出院'},
+    {name:'婴儿帽子',deadline:'2025-08-15',phase:'宝宝 · 出院'},
+    {name:'纸尿裤NB(待产包)',deadline:'2025-08-15',note:'带几片去医院',phase:'宝宝 · 出院'},
+    {name:'汽车安全座椅(已装车)',deadline:'2025-08-15',note:'出院必须！提前装好',phase:'宝宝 · 出院'},
+    {name:'爸爸换洗衣服',deadline:'2025-08-15',note:'1-2套',phase:'爸爸 · 陪产'},
+    {name:'洗漱用品(爸爸)',deadline:'2025-08-15',phase:'爸爸 · 陪产'},
+    {name:'零食/咖啡(爸爸)',deadline:'2025-08-20',phase:'爸爸 · 陪产'},
+    {name:'枕头/小毯子',deadline:'2025-08-15',note:'陪产用，医院可能没有',phase:'爸爸 · 陪产'},
+    {name:'相机/摄像机',deadline:'2025-08-15',note:'记录宝宝出生',phase:'爸爸 · 陪产'},
+  ],
+  5:[
+    {name:'选OB/产检建档',deadline:'2025-06-01',note:'确认接生医院和医生',phase:'产前准备'},
+    {name:'Hospital Pre-registration',deadline:'2025-07-15',note:'提前在医院注册',phase:'产前准备'},
+    {name:'Hospital Tour',deadline:'2025-07-01',note:'参观产房，了解流程',phase:'产前准备'},
+    {name:'Pediatrician 预约',deadline:'2025-07-15',note:'出生前选好儿科医生',phase:'产前准备'},
+    {name:'保险确认覆盖范围',deadline:'2025-06-15',note:'确认产检/分娩/住院cover多少',phase:'产前准备'},
+    {name:'Social Security Number (SSN)',deadline:'2025-09-30',note:'医院代申请，2-4周寄到家',phase:'产后 · 美国证件'},
+    {name:'Birth Certificate 出生证明',deadline:'2025-09-15',note:'要5-6份certified copy！',phase:'产后 · 美国证件'},
+    {name:'美国护照(宝宝)',deadline:'2025-10-30',note:'父母双方+宝宝到场',phase:'产后 · 美国证件'},
+    {name:'宝宝加入保险',deadline:'2025-09-28',note:'⚠️出生30天内必须加！',phase:'产后 · 美国证件'},
+    {name:'宝宝证件照',deadline:'2025-09-15',note:'白底2寸+2x2inch，CVS可拍',phase:'产后 · 美国证件'},
+    {name:'领事馆预约',deadline:'2025-10-15',note:'办旅行证要预约，尽早约！',phase:'产后 · 中国证件'},
+    {name:'中国旅行证',deadline:'2025-11-30',note:'双方中国籍→宝宝办旅行证。有效期2年',phase:'产后 · 中国证件'},
+    {name:'出生证明海牙认证(Apostille)',deadline:'2025-11-30',note:'回国需要，约2-4周',phase:'产后 · 中国证件'},
+    {name:'出生证明翻译+公证',deadline:'2025-11-30',note:'回国用，中文翻译并公证',phase:'产后 · 中国证件'},
+    {name:'更新遗嘱/受益人',deadline:'2025-10-30',note:'401k/人寿/银行加上宝宝',phase:'产后 · 财务法律'},
+    {name:'Dependent Care FSA',deadline:'2025-09-30',note:'daycare费用可以省税',phase:'产后 · 财务法律'},
+    {name:'报税准备(宝宝SSN)',deadline:'2025-12-30',note:'当年可claim Child Tax Credit',phase:'产后 · 财务法律'},
+  ],
+  6:[
+    {name:'预订月嫂',deadline:'2025-06-15',note:'⚠️好月嫂提前3-6个月订！$8k-18k',phase:'月嫂'},
+    {name:'确认月嫂合同/入住安排',deadline:'2025-08-01',note:'确认日期、工作内容、食宿',phase:'月嫂'},
+    {name:'红枣+枸杞+红糖',deadline:'2025-08-10',note:'月子餐必备',phase:'月子食材'},
+    {name:'月子米酒/醪糟',deadline:'2025-08-10',phase:'月子食材'},
+    {name:'麻油+老姜',deadline:'2025-08-10',note:'麻油鸡必备',phase:'月子食材'},
+    {name:'乌鸡/猪蹄/鲫鱼',deadline:'2025-08-20',note:'提前找好华人超市',phase:'月子食材'},
+    {name:'黑芝麻/核桃/花生',deadline:'2025-08-10',phase:'月子食材'},
+    {name:'冷冻月子餐 meal prep',deadline:'2025-08-15',note:'提前做好冻起来',phase:'月子食材'},
+    {name:'保温杯/大容量',deadline:'2025-08-10',note:'月子不喝凉水',phase:'月子用品'},
+    {name:'月子鞋(包跟防滑)',deadline:'2025-08-10',phase:'月子用品'},
+    {name:'月子帽/头巾',deadline:'2025-08-10',phase:'月子用品'},
+    {name:'艾叶泡脚/洗浴包',deadline:'2025-08-10',phase:'月子用品'},
+    {name:'生化汤材料',deadline:'2025-08-10',note:'建议咨询中医',phase:'月子用品'},
+    {name:'Peri bottle 会阴冲洗瓶',deadline:'2025-08-10',note:'Frida Mom的好用',phase:'产后恢复'},
+    {name:'Sitz bath 坐浴盆',deadline:'2025-08-10',phase:'产后恢复'},
+    {name:'Stool softener (Colace)',deadline:'2025-08-10',note:'产后便秘很常见',phase:'产后恢复'},
+    {name:'乳头霜 Lanolin',deadline:'2025-08-01',note:'哺乳初期必备',phase:'产后恢复'},
+    {name:'乳房冷热敷垫',deadline:'2025-08-01',note:'涨奶/堵奶急救',phase:'产后恢复'},
+    {name:'预约Lactation Consultant',deadline:'2025-08-01',note:'IBCLC哺乳顾问',phase:'产后恢复'},
+    {name:'了解产后抑郁症状',deadline:'2025-08-01',note:'提前了解PPD，准备心理咨询师电话',phase:'产后恢复'},
+  ],
+  7:[
+    {name:'Infant CPR 课程',deadline:'2025-07-15',note:'Red Cross，爸妈都要学！',phase:'产前 · 赶紧做'},
+    {name:'脐带血存储决定',deadline:'2025-08-01',note:'分娩前必须决定',phase:'产前 · 赶紧做'},
+    {name:'安全座椅安装+消防局检查',deadline:'2025-08-10',note:'消防局免费检查安装',phase:'产前 · 赶紧做'},
+    {name:'给宝宝取中文名',deadline:'2025-08-01',note:'办旅行证需要中文名',phase:'产前 · 赶紧做'},
+    {name:'洗所有宝宝衣服/床单',deadline:'2025-08-10',note:'用Dreft/All Free Clear',phase:'产前 · 赶紧做'},
+    {name:'预约Newborn Photographer',deadline:'2025-07-01',note:'出生5-14天内拍',phase:'产前 · 赶紧做'},
+    {name:'白噪音机',deadline:'2025-08-01',note:'Hatch/Yogasleep',phase:'容易遗漏的好物'},
+    {name:'遮光窗帘',deadline:'2025-08-01',note:'白天小睡必备',phase:'容易遗漏的好物'},
+    {name:'婴儿背带/腰凳',deadline:'2025-08-01',note:'Ergobaby/Boba Wrap',phase:'容易遗漏的好物'},
+    {name:'吸鼻器 NoseFrida',deadline:'2025-08-10',note:'宝宝鼻塞必备',phase:'容易遗漏的好物'},
+    {name:'妈咪包 Diaper Bag',deadline:'2025-08-01',phase:'容易遗漏的好物'},
+    {name:'防水尿布袋 Wet Bag',deadline:'2025-08-10',phase:'容易遗漏的好物'},
+    {name:'Car seat 后视镜',deadline:'2025-08-10',phase:'容易遗漏的好物'},
+    {name:'防吐奶巾 Burp Cloth',deadline:'2025-08-10',note:'至少10条',phase:'容易遗漏的好物'},
+    {name:'婴儿洗衣液',deadline:'2025-08-01',note:'Dreft/All Free Clear',phase:'容易遗漏的好物'},
+    {name:'加湿器',deadline:'2025-08-01',phase:'容易遗漏的好物'},
+    {name:'防水床垫套(2个)',deadline:'2025-08-01',phase:'容易遗漏的好物'},
+    {name:'储奶袋',deadline:'2025-08-01',phase:'容易遗漏的好物'},
+    {name:'Daycare排队',deadline:'2025-07-01',note:'⚠️好daycare排队6-12个月！',phase:'长线规划'},
+    {name:'人寿保险 Term Life',deadline:'2025-07-15',note:'产前买最便宜，10倍年收入',phase:'长线规划'},
+    {name:'遗嘱+监护人指定',deadline:'2025-08-01',note:'法律上必须写清楚',phase:'长线规划'},
+    {name:'529教育储蓄计划',deadline:'2025-10-30',note:'免税教育储蓄',phase:'长线规划'},
+    {name:'满月/百日宴策划',deadline:'2025-09-01',note:'订场地/摄影师',phase:'长线规划'},
+    {name:'FMLA/州产假政策确认',deadline:'2025-06-15',note:'查你州有没有paid family leave',phase:'长线规划'},
+    {name:'确认绿卡vs签证对旅行证影响',deadline:'2025-07-01',note:'⚠️绿卡可能影响旅行证资格',phase:'长线规划'},
+  ]
+};
+
+// ============ Platform Detection ============
+const PLATFORMS=[
+  {key:'xiaohongshu',patterns:[/xiaohongshu\.com/i,/xhslink\.com/i,/xhs\.cn/i],emoji:'📕',name:'小红书'},
+  {key:'weibo',patterns:[/weibo\.com/i,/weibo\.cn/i],emoji:'🔥',name:'微博'},
+  {key:'douyin',patterns:[/douyin\.com/i],emoji:'🎵',name:'抖音'},
+  {key:'bilibili',patterns:[/bilibili\.com/i,/b23\.tv/i],emoji:'📺',name:'B站'},
+  {key:'youtube',patterns:[/youtube\.com/i,/youtu\.be/i],emoji:'▶️',name:'YouTube'},
+  {key:'amazon',patterns:[/amazon\.com/i,/amzn\.to/i],emoji:'🛒',name:'Amazon'},
+  {key:'target',patterns:[/target\.com/i],emoji:'🎯',name:'Target'},
+  {key:'walmart',patterns:[/walmart\.com/i],emoji:'🏪',name:'Walmart'},
+  {key:'taobao',patterns:[/taobao\.com/i,/tb\.cn/i,/tmall\.com/i],emoji:'🛍',name:'淘宝'},
+  {key:'jd',patterns:[/jd\.com/i],emoji:'🐶',name:'京东'},
+  {key:'costco',patterns:[/costco\.com/i],emoji:'🏬',name:'Costco'},
+  {key:'buybuybaby',patterns:[/buybuybaby\.com/i],emoji:'🍼',name:'BuyBuyBaby'},
+  {key:'babylist',patterns:[/babylist\.com/i],emoji:'📋',name:'Babylist'},
+];
+function detectPlatform(url){for(const p of PLATFORMS)for(const pat of p.patterns)if(pat.test(url))return p;return{key:'other',emoji:'🔗',name:'链接'};}
+function extractASIN(url){if(!url)return null;const pats=[/\/dp\/([A-Z0-9]{10})/i,/\/gp\/product\/([A-Z0-9]{10})/i,/amazon\.com.*?\/([A-Z0-9]{10})(?:\/|$|\?)/i];for(const p of pats){const m=url.match(p);if(m)return m[1];}return null;}
+function getItemASIN(item){if(!item.links)return null;for(const l of item.links){const a=extractASIN(typeof l==='string'?l:l.url);if(a)return a;}return null;}
+function normalizeLinks(links){if(!links)return[];return links.map(l=>typeof l==='string'?{url:l,memo:''}:l);}
+
+// ============ State ============
+let items=[];
+let currentTab='all';
+let currentFilter='all';
+let editingId=null;
+let currentUser=null;
+let familyId=null;
+let unsubscribe=null;
+
+// ============ Helpers ============
+function escapeHtml(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+function today(){return new Date().toISOString().substring(0,10);}
+function daysUntil(d){return Math.ceil((new Date(d)-new Date())/(1000*60*60*24));}
+function genId(){return Date.now().toString(36)+Math.random().toString(36).substr(2,5);}
+
+// ============ Exchange Rate ============
+let fxRate=parseFloat(localStorage.getItem('bp_fx'))||7.25;
+let showDualCurrency=localStorage.getItem('bp_dual')!=='false';
+function toUSD(a,c){return c==='¥'?a/fxRate:a;}
+function fxLabel(a,c){if(!showDualCurrency)return'';const cv=c==='$'?{s:'¥',a:a*fxRate}:{s:'$',a:a/fxRate};return `<span class="converted">(≈${cv.s}${cv.a.toFixed(2)})</span>`;}
+async function fetchFx(){try{if(localStorage.getItem('bp_fxd')===today())return;const r=await fetch('https://open.er-api.com/v6/latest/USD');const d=await r.json();if(d?.rates?.CNY){fxRate=d.rates.CNY;localStorage.setItem('bp_fx',fxRate);localStorage.setItem('bp_fxd',today());}}catch(e){}}
+
+// ============ Firebase Data ============
+async function ensureFamily(){
+  const userDoc=await db.collection('users').doc(currentUser.uid).get();
+  if(userDoc.exists&&userDoc.data().familyId){
+    familyId=userDoc.data().familyId;
+  } else {
+    // Check URL for invite
+    const params=new URLSearchParams(location.search);
+    if(params.get('join')){
+      familyId=params.get('join');
+    } else {
+      familyId=genId();
+    }
+    await db.collection('users').doc(currentUser.uid).set({familyId,email:currentUser.email,name:currentUser.displayName},{merge:true});
+  }
+  // Add to family members
+  await db.collection('families').doc(familyId).set({members:firebase.firestore.FieldValue.arrayUnion(currentUser.uid),updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+  startListening();
+}
+
+function startListening(){
+  if(unsubscribe)unsubscribe();
+  unsubscribe=db.collection('families').doc(familyId).collection('items').orderBy('deadline')
+    .onSnapshot(snap=>{
+      items=[];
+      snap.forEach(doc=>{const d=doc.data();d.id=doc.id;d.links=normalizeLinks(d.links);if(!d.priceHistory)d.priceHistory=[];items.push(d);});
+      renderApp();
+    });
+}
+
+async function saveItem_fb(item){
+  const {id,...data}=item;
+  data.updatedAt=firebase.firestore.FieldValue.serverTimestamp();
+  data.updatedBy=currentUser.displayName||currentUser.email;
+  if(id&&typeof id==='string'&&id.length>5){
+    await db.collection('families').doc(familyId).collection('items').doc(id).set(data,{merge:true});
+  } else {
+    const ref=await db.collection('families').doc(familyId).collection('items').add(data);
+    return ref.id;
+  }
+}
+
+async function deleteItem_fb(id){
+  await db.collection('families').doc(familyId).collection('items').doc(id).delete();
+}
+
+// ============ Search URLs ============
+function searchUrl(name,p){const q=encodeURIComponent(name);return{xiaohongshu:`https://www.xiaohongshu.com/search_result?keyword=${q}`,weibo:`https://s.weibo.com/weibo?q=${q}`,douyin:`https://www.douyin.com/search/${q}`,bilibili:`https://search.bilibili.com/all?keyword=${q}`,amazon:`https://www.amazon.com/s?k=${q}`,target:`https://www.target.com/s?searchTerm=${q}`,taobao:`https://s.taobao.com/search?q=${q}`,jd:`https://search.jd.com/Search?keyword=${q}`,walmart:`https://www.walmart.com/search?q=${q}`,youtube:`https://www.youtube.com/results?search_query=${q}`}[p];}
+
+// ============ Price Helpers ============
+function priceStats(ph){if(!ph||!ph.length)return null;const n=ph.map(p=>({...p,usd:toUSD(p.price,p.currency||'$')}));const c=n[n.length-1];const u=n.map(p=>p.usd);const min=Math.min(...u),max=Math.max(...u);const prev=n.length>=2?n[n.length-2].usd:c.usd;return{current:c.price,currency:c.currency||'$',currentUSD:c.usd,min,max,change:c.usd-prev,count:ph.length};}
+function drawSparkline(ph){if(!ph||ph.length<2)return'';const prices=ph.map(p=>toUSD(p.price,p.currency||'$')),min=Math.min(...prices),max=Math.max(...prices),range=max-min||1;const w=200,h=40,pad=4,step=(w-2*pad)/(prices.length-1);const pts=prices.map((p,i)=>`${pad+i*step},${h-pad-((p-min)/range)*(h-2*pad)}`);const last=prices[prices.length-1];const color=last<=min*1.05?'#27ae60':last>=max*0.95?'#e55039':'#3498db';return`<svg class="price-chart" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline fill="none" stroke="${color}" stroke-width="2" points="${pts.join(' ')}"/><circle cx="${pts[pts.length-1].split(',')[0]}" cy="${pts[pts.length-1].split(',')[1]}" r="3" fill="${color}"/></svg>`;}
+
+// ============ Render Helpers ============
+function renderLinksSection(item){
+  const links=normalizeLinks(item.links);
+  let html='<div class="links-section">';
+  links.forEach(link=>{const p=detectPlatform(link.url);const memo=link.memo?` · ${escapeHtml(link.memo)}`:'';html+=`<a href="${escapeHtml(link.url)}" target="_blank" class="link-tag link-tag-${p.key}">${p.emoji} ${p.name}${memo}</a>`;});
+  const asin=getItemASIN(item);
+  if(asin){html+=`<a href="https://camelcamelcamel.com/product/${asin}" target="_blank" class="link-tag" style="background:#9b59b6">🐫 价格历史</a><a href="https://keepa.com/#!product/1-${asin}" target="_blank" class="link-tag" style="background:#2980b9">📊 Keepa</a>`;}
+  html+=`<div class="link-add-row"><input id="lu_${item.id}" placeholder="粘贴链接..." style="flex:2"><input id="lm_${item.id}" placeholder="备注" style="flex:1"><button onclick="quickAddLink('${item.id}')">+</button></div></div>`;
+  return html;
+}
+
+function renderPriceSection(item){
+  const st=priceStats(item.priceHistory);
+  let html='<div class="price-section"><div class="price-header"><span style="font-weight:600">💰 价格追踪</span>';
+  if(st){const s=st.currency==='¥'?'¥':'$';html+=`<span class="price-current">${s}${st.current.toFixed(2)}${fxLabel(st.current,st.currency)}`;if(st.change!==0){const cls=st.change<0?'drop':'rise';html+=`<span class="price-badge ${cls}">${st.change<0?'↓':'↑'}$${Math.abs(st.change).toFixed(2)}</span>`;}html+=`</span>`;}
+  html+='</div>';
+  if(item.priceHistory?.length>=2){html+=drawSparkline(item.priceHistory);const mr=(st.min*fxRate).toFixed(2),xr=(st.max*fxRate).toFixed(2);html+=`<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text2);margin-top:2px"><span>最低:$${st.min.toFixed(2)}${showDualCurrency?' (¥'+mr+')':''}</span><span>最高:$${st.max.toFixed(2)}${showDualCurrency?' (¥'+xr+')':''}</span></div>`;if(st.currentUSD<=st.min*1.05)html+=`<div style="font-size:11px;color:#27ae60;font-weight:600;margin-top:4px">✨ 接近历史最低！考虑入手</div>`;}
+  if(item.priceHistory?.length>0){html+='<div style="margin-top:6px">';item.priceHistory.slice(-5).reverse().forEach(p=>{const s=p.currency==='¥'?'¥':'$';html+=`<div class="price-history-row"><span>${p.date}${p.source?' ('+escapeHtml(p.source)+')':''}</span><span>${s}${p.price.toFixed(2)}${showDualCurrency?' '+fxLabel(p.price,p.currency||'$'):''}</span></div>`;});if(item.priceHistory.length>5)html+=`<div style="font-size:10px;color:var(--text2);text-align:center;margin-top:2px">共${item.priceHistory.length}条</div>`;html+='</div>';}
+  html+=`<div class="price-add-row"><select id="cur_${item.id}"><option value="$">$</option><option value="¥">¥</option></select><input type="number" step="0.01" placeholder="价格" id="pr_${item.id}" style="max-width:70px"><input type="text" placeholder="来源" id="ps_${item.id}" style="max-width:80px"><button onclick="addPrice('${item.id}')">记录</button></div></div>`;
+  return html;
+}
+
+function renderItemCard(item){
+  const dl=daysUntil(item.deadline),urg=(!item.done&&dl<=14)?'urgent':'',dlt=dl<0?`过期${-dl}天`:dl===0?'今天':`${dl}天`;
+  const st=priceStats(item.priceHistory),sym=st?(st.currency==='¥'?'¥':'$'):'',pd=st?` · ${sym}${st.current.toFixed(2)}${fxLabel(st.current,st.currency)}`:'';
+  const phTag=item.phase&&currentTab==='all'?`<span style="font-size:10px;background:#f0f0f0;padding:1px 6px;border-radius:6px;margin-left:4px">${escapeHtml(item.phase)}</span>`:'';
+  return`<div class="item-card cat-${item.cat} ${item.done?'done':''}"><div class="top"><span class="name">${item.done?'✅ ':''}${escapeHtml(item.name)}${phTag}</span><span class="deadline ${urg}">${item.deadline} (${dlt})</span></div><div class="meta">${CATEGORIES[item.cat]?.emoji||''} ${CATEGORIES[item.cat]?.name||''}${pd}</div>${item.note?`<div class="notes">${escapeHtml(item.note)}</div>`:''}${renderLinksSection(item)}<div class="search-row"><button class="search-btn" onclick="window.open('${searchUrl(item.name,'xiaohongshu')}')">📕小红书</button><button class="search-btn" onclick="window.open('${searchUrl(item.name,'weibo')}')">🔥微博</button><button class="search-btn" onclick="window.open('${searchUrl(item.name,'amazon')}')">🛒Amazon</button><button class="search-btn" onclick="window.open('${searchUrl(item.name,'target')}')">🎯Target</button><button class="search-btn" onclick="window.open('${searchUrl(item.name,'taobao')}')">🛍淘宝</button></div>${renderPriceSection(item)}<div class="actions"><button onclick="toggleDone('${item.id}')">${item.done?'↩️':'✅'}</button><button onclick="openModal('${item.id}')">✏️</button><button onclick="deleteItem('${item.id}')">🗑</button></div></div>`;
+}
+
+// ============ Main Render ============
+function renderApp(){
+  if(!currentUser){renderLogin();return;}
+  const app=document.getElementById('app');
+  const d=daysUntil(DUE_DATE);
+  const inviteUrl=location.origin+location.pathname+'?join='+familyId;
+
+  let html=`<div class="header"><h1>Baby Prep Tracker</h1><div class="countdown">${d>0?`距离预产期还有 ${d} 天`:'宝宝随时到来！'}</div><div class="user-bar"><span>${currentUser.displayName||currentUser.email}</span><span><button onclick="copyInvite()">邀请同步</button> <button onclick="signOut()">登出</button></span></div></div>`;
+  html+=`<div class="family-bar">家庭ID: <code>${familyId}</code> <button onclick="copyInvite()">📋复制邀请链接</button></div>`;
+  // FX bar
+  html+=`<div class="fx-bar"><span>汇率: <span class="fx-rate">$1=¥${fxRate.toFixed(2)}</span></span><span><button class="fx-toggle ${showDualCurrency?'active':''}" onclick="toggleFx()">${showDualCurrency?'双币ON':'双币OFF'}</button><button class="print-btn" onclick="window.print()">🖨️打印</button></span></div>`;
+  // Tabs
+  html+=`<div class="tabs">${TABS.map(t=>`<div class="tab ${currentTab===t.id?'active':''}" onclick="switchTab('${t.id}')">${t.name}</div>`).join('')}</div>`;
+  html+=`<div class="content">`;
+
+  if(currentTab==='weekly') html+=renderWeekly();
+  else if(currentTab==='budget') html+=renderBudget();
+  else if(currentTab==='timeline') html+=renderTimeline();
+  else html+=renderItemList();
+
+  html+=`</div><button class="fab" onclick="openModal()">+</button>`;
+  app.innerHTML=html;
+}
+
+function renderItemList(){
+  let list=currentTab==='all'?[...items]:items.filter(i=>i.cat===currentTab);
+  if(currentFilter==='todo')list=list.filter(i=>!i.done);
+  if(currentFilter==='done')list=list.filter(i=>i.done);
+  if(currentFilter==='urgent')list=list.filter(i=>!i.done&&daysUntil(i.deadline)<=14);
+  list.sort((a,b)=>new Date(a.deadline)-new Date(b.deadline));
+
+  const pool=currentTab==='all'?items:items.filter(i=>i.cat===currentTab);
+  const total=pool.length,done=pool.filter(i=>i.done).length;
+  let html='';
+  if(total>0){const pct=Math.round(done/total*100);html+=`<div class="timeline-bar"><h3>准备进度</h3><div class="progress-wrap"><div class="progress-fill" style="width:${pct}%"></div></div><div class="stats"><span>${done}/${total} 已完成</span><span>${pct}%</span></div></div>`;}
+  html+=`<div class="filter-row"><span class="filter-chip ${currentFilter==='all'?'active':''}" onclick="setFilter('all')">全部</span><span class="filter-chip ${currentFilter==='todo'?'active':''}" onclick="setFilter('todo')">待购</span><span class="filter-chip ${currentFilter==='urgent'?'active':''}" onclick="setFilter('urgent')">紧急</span><span class="filter-chip ${currentFilter==='done'?'active':''}" onclick="setFilter('done')">已买</span></div>`;
+
+  if(list.length===0){
+    html+=`<div class="empty">还没有物品，点击右下角 + 添加</div>`;
+    if(currentTab!=='all')html+=`<div style="text-align:center;margin-top:10px"><button class="btn btn-primary" style="width:auto;padding:10px 20px" onclick="addPresets(${currentTab})">📋 添加推荐清单</button></div>`;
+    return html;
+  }
+
+  const hasPhases=currentTab!=='all'&&list.some(i=>i.phase);
+  if(hasPhases){
+    const order=[],map={};
+    list.forEach(item=>{const ph=item.phase||'其他';if(!map[ph]){map[ph]=[];order.push(ph);}map[ph].push(item);});
+    order.forEach(ph=>{const pi=map[ph],pd=pi.filter(i=>i.done).length;html+=`<div class="phase-header"><span>${ph}</span><span class="phase-stats">${pd}/${pi.length} 完成</span></div>`;pi.forEach(i=>{html+=renderItemCard(i);});});
+  } else {
+    list.forEach(i=>{html+=renderItemCard(i);});
+  }
+  return html;
+}
+
+function renderWeekly(){
+  const now=new Date();const weekEnd=new Date(now);weekEnd.setDate(now.getDate()+7);
+  const overdue=items.filter(i=>!i.done&&new Date(i.deadline)<now).sort((a,b)=>new Date(a.deadline)-new Date(b.deadline));
+  const thisWeek=items.filter(i=>!i.done&&new Date(i.deadline)>=now&&new Date(i.deadline)<=weekEnd).sort((a,b)=>new Date(a.deadline)-new Date(b.deadline));
+  const next2Weeks=items.filter(i=>!i.done&&new Date(i.deadline)>weekEnd&&daysUntil(i.deadline)<=21).sort((a,b)=>new Date(a.deadline)-new Date(b.deadline));
+
+  let html='';
+  if(overdue.length){
+    html+=`<div class="weekly-card" style="border-left-color:var(--red)"><div class="wk-title">⚠️ 已过期 (${overdue.length})</div>`;
+    overdue.forEach(i=>{html+=`<div class="weekly-item"><span>${CATEGORIES[i.cat]?.emoji||''} ${escapeHtml(i.name)}</span><span style="color:var(--red)">${i.deadline} <button onclick="toggleDone('${i.id}')">✅</button></span></div>`;});
+    html+=`</div>`;
+  }
+  if(thisWeek.length){
+    html+=`<div class="weekly-card"><div class="wk-title">📋 本周待办 (${thisWeek.length})</div>`;
+    thisWeek.forEach(i=>{const dl=daysUntil(i.deadline);html+=`<div class="weekly-item"><span>${CATEGORIES[i.cat]?.emoji||''} ${escapeHtml(i.name)}</span><span>${dl}天 <button onclick="toggleDone('${i.id}')">✅</button></span></div>`;});
+    html+=`</div>`;
+  }
+  if(next2Weeks.length){
+    html+=`<div class="weekly-card" style="border-left-color:var(--orange)"><div class="wk-title" style="color:var(--orange)">📅 未来两周 (${next2Weeks.length})</div>`;
+    next2Weeks.forEach(i=>{const dl=daysUntil(i.deadline);html+=`<div class="weekly-item"><span>${CATEGORIES[i.cat]?.emoji||''} ${escapeHtml(i.name)}</span><span>${dl}天</span></div>`;});
+    html+=`</div>`;
+  }
+  if(!overdue.length&&!thisWeek.length&&!next2Weeks.length) html+=`<div class="empty">近期没有待办事项 🎉</div>`;
+  return html;
+}
+
+function renderBudget(){
+  let html='';
+  // Calculate totals per category
+  let grandTotal=0;
+  const catTotals=CATEGORIES.map(cat=>{
+    const catItems=items.filter(i=>i.cat===cat.id&&i.done&&i.priceHistory?.length>0);
+    let total=0;
+    catItems.forEach(i=>{const last=i.priceHistory[i.priceHistory.length-1];total+=toUSD(last.price,last.currency||'$');});
+    grandTotal+=total;
+    return{...cat,total,count:catItems.length};
+  });
+
+  html+=`<div class="budget-card"><h3>💰 总支出</h3><div class="budget-total">$${grandTotal.toFixed(2)} ${showDualCurrency?`<span class="converted">(≈¥${(grandTotal*fxRate).toFixed(2)})</span>`:''}</div><div style="font-size:11px;color:var(--text2);margin-bottom:8px">${items.filter(i=>i.done).length} 已购 / ${items.length} 总计</div>`;
+  catTotals.filter(c=>c.total>0).sort((a,b)=>b.total-a.total).forEach(c=>{
+    html+=`<div class="budget-row"><span><span class="cat-dot" style="background:${c.color}"></span>${c.emoji} ${c.name} (${c.count}件)</span><span>$${c.total.toFixed(2)}${showDualCurrency?` (¥${(c.total*fxRate).toFixed(0)})`:''}</span></div>`;
+  });
+  html+=`</div>`;
+
+  // Pending items with prices
+  const pending=items.filter(i=>!i.done&&i.priceHistory?.length>0);
+  if(pending.length){
+    let pendingTotal=0;
+    pending.forEach(i=>{const last=i.priceHistory[i.priceHistory.length-1];pendingTotal+=toUSD(last.price,last.currency||'$');});
+    html+=`<div class="budget-card"><h3>🛒 待购预估</h3><div class="budget-total">$${pendingTotal.toFixed(2)} ${showDualCurrency?`<span class="converted">(≈¥${(pendingTotal*fxRate).toFixed(2)})</span>`:''}</div>`;
+    pending.sort((a,b)=>{const la=a.priceHistory[a.priceHistory.length-1],lb=b.priceHistory[b.priceHistory.length-1];return toUSD(lb.price,lb.currency||'$')-toUSD(la.price,la.currency||'$');}).forEach(i=>{
+      const last=i.priceHistory[i.priceHistory.length-1];const s=last.currency==='¥'?'¥':'$';
+      html+=`<div class="budget-row"><span>${CATEGORIES[i.cat]?.emoji||''} ${escapeHtml(i.name)}</span><span>${s}${last.price.toFixed(2)}</span></div>`;
+    });
+    html+=`</div>`;
+  }
+  return html;
+}
+
+function renderTimeline(){
+  const months={};
+  items.filter(i=>!i.done).sort((a,b)=>new Date(a.deadline)-new Date(b.deadline)).forEach(item=>{const m=item.deadline.substring(0,7);if(!months[m])months[m]=[];months[m].push(item);});
+  let html='<h3 style="margin-bottom:12px;font-size:16px">📅 待购时间线</h3>';
+  if(!Object.keys(months).length)return html+'<div class="empty">所有物品已买齐！🎉</div>';
+  Object.keys(months).sort().forEach(m=>{
+    const d=new Date(m+'-01');const label=d.toLocaleDateString('zh-CN',{year:'numeric',month:'long'});
+    html+=`<div class="timeline-bar"><h3>${label} (${months[m].length}件)</h3>`;
+    months[m].forEach(item=>{const dl=daysUntil(item.deadline);const st=priceStats(item.priceHistory);const p=st?` ${st.currency==='¥'?'¥':'$'}${st.current.toFixed(2)}`:'';
+      html+=`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid #f0f0f0"><span>${CATEGORIES[item.cat]?.emoji||''} ${escapeHtml(item.name)}</span><span style="color:${dl<=14?'var(--red)':'var(--text2)'}">${item.deadline.substring(5)}${p}</span></div>`;});
+    html+='</div>';
+  });
+  return html;
+}
+
+// ============ Login ============
+function renderLogin(){
+  document.getElementById('app').innerHTML=`<div class="login-screen"><h1>👶 Baby Prep</h1><p>夫妻同步的待产准备清单</p><button class="login-btn" onclick="googleLogin()"><img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="G">用 Google 账号登录</button><p style="margin-top:16px;font-size:12px;color:var(--text2)">登录后数据云端同步，夫妻共享</p></div>`;
+}
+
+async function googleLogin(){
+  try{
+    const provider=new firebase.auth.GoogleAuthProvider();
+    await auth.signInWithPopup(provider);
+  }catch(e){
+    // Try redirect for mobile
+    const provider=new firebase.auth.GoogleAuthProvider();
+    await auth.signInWithRedirect(provider);
+  }
+}
+
+function signOut(){auth.signOut();}
+
+// ============ Actions ============
+function switchTab(id){currentTab=id==='timeline'||id==='weekly'||id==='budget'||id==='all'?id:parseInt(id);renderApp();}
+function setFilter(f){currentFilter=f;renderApp();}
+function toggleFx(){showDualCurrency=!showDualCurrency;localStorage.setItem('bp_dual',showDualCurrency);renderApp();}
+
+async function toggleDone(id){
+  const item=items.find(i=>i.id===id);
+  if(item){item.done=!item.done;await saveItem_fb(item);}
+}
+
+async function deleteItem(id){
+  if(!confirm('确定删除？'))return;
+  await deleteItem_fb(id);
+}
+
+async function quickAddLink(itemId){
+  const url=document.getElementById(`lu_${itemId}`)?.value.trim();
+  const memo=document.getElementById(`lm_${itemId}`)?.value.trim()||'';
+  if(!url||!url.startsWith('http')){alert('请输入有效链接');return;}
+  const item=items.find(i=>i.id===itemId);if(!item)return;
+  if(!item.links)item.links=[];
+  item.links.push({url,memo});
+  await saveItem_fb(item);
+}
+
+async function addPrice(itemId){
+  const price=parseFloat(document.getElementById(`pr_${itemId}`)?.value);
+  if(isNaN(price)||price<=0){alert('请输入有效价格');return;}
+  const item=items.find(i=>i.id===itemId);if(!item)return;
+  if(!item.priceHistory)item.priceHistory=[];
+  item.priceHistory.push({date:today(),price,currency:document.getElementById(`cur_${itemId}`)?.value||'$',source:document.getElementById(`ps_${itemId}`)?.value.trim()||''});
+  await saveItem_fb(item);
+}
+
+async function addPresets(cat){
+  const presets=PRESETS[cat]||[];
+  const existing=new Set(items.filter(i=>i.cat===cat).map(i=>i.name));
+  let added=0;
+  const batch=db.batch();
+  presets.forEach(p=>{
+    if(!existing.has(p.name)){
+      const ref=db.collection('families').doc(familyId).collection('items').doc();
+      batch.set(ref,{name:p.name,cat:cat,deadline:p.deadline,note:p.note||'',phase:p.phase||'',links:[],priceHistory:[],done:false,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:currentUser.displayName||''});
+      added++;
+    }
+  });
+  await batch.commit();
+  alert(`已添加 ${added} 个推荐物品`);
+}
+
+function copyInvite(){
+  const url=location.origin+location.pathname+'?join='+familyId;
+  navigator.clipboard.writeText(url).then(()=>alert('邀请链接已复制！发给老婆，她打开链接登录后就能同步数据了')).catch(()=>{prompt('复制此链接发给老婆：',url);});
+}
+
+// ============ Modal ============
+function openModal(id){
+  editingId=id||null;
+  const item=id?items.find(i=>i.id===id):null;
+  const el=document.getElementById('modal');
+
+  let presetsHtml='';
+  if(!item){presetsHtml=`<div class="suggested"><strong>快速添加推荐清单：</strong><div class="preset-grid">${CATEGORIES.map(c=>`<button class="preset-btn" onclick="addPresets(${c.id});closeModal()">${c.emoji} ${c.name}</button>`).join('')}</div></div>`;}
+
+  let linksHtml='';
+  if(item){
+    const links=normalizeLinks(item.links);
+    linksHtml=`<div class="form-group"><label>已保存的链接 (${links.length})</label><div style="background:#f9f9f9;border-radius:8px;padding:6px;max-height:150px;overflow-y:auto">`;
+    if(!links.length)linksHtml+='<div style="font-size:12px;color:var(--text2);padding:4px">还没有链接</div>';
+    links.forEach((link,idx)=>{const p=detectPlatform(link.url);linksHtml+=`<div class="modal-link-item"><span style="font-size:14px">${p.emoji}</span><span class="link-url">${escapeHtml(link.memo||p.name)}</span><button onclick="removeLink('${item.id}',${idx})">×</button></div>`;});
+    linksHtml+=`</div></div><div class="form-group"><label>添加新链接</label><div style="display:flex;gap:6px"><input id="modal_lu" placeholder="粘贴链接" style="flex:2;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:13px"><input id="modal_lm" placeholder="备注" style="flex:1;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:13px"><button onclick="modalAddLink()" style="padding:8px 14px;border:none;border-radius:8px;background:var(--pink);color:#fff;font-size:13px;cursor:pointer">+</button></div></div>`;
+  }
+
+  el.innerHTML=`<h2>${item?'编辑':'添加'}物品</h2>${presetsHtml}
+    <div class="form-group"><label>物品名称</label><input id="f_name" value="${item?escapeHtml(item.name):''}" placeholder="如：婴儿推车"></div>
+    <div class="form-group"><label>分类</label><select id="f_cat">${CATEGORIES.map(c=>`<option value="${c.id}" ${item&&item.cat===c.id?'selected':''}>${c.emoji} ${c.name}</option>`).join('')}</select></div>
+    <div class="form-group"><label>阶段</label><input id="f_phase" value="${item?escapeHtml(item.phase||''):''}" placeholder="如：产前准备" list="ph_sug"><datalist id="ph_sug">${[...new Set(items.map(i=>i.phase).filter(Boolean))].map(p=>`<option value="${escapeHtml(p)}">`).join('')}</datalist></div>
+    <div class="form-group"><label>截止日期</label><input type="date" id="f_deadline" value="${item?item.deadline:'2025-08-01'}"></div>
+    <div class="form-group"><label>备注</label><textarea id="f_note" placeholder="品牌偏好、参考信息等">${item?escapeHtml(item.note):''}</textarea></div>
+    ${linksHtml}
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+      ${item?`<button class="btn btn-danger" onclick="deleteItem('${item.id}');closeModal()">删除</button>`:''}
+      <button class="btn btn-primary" onclick="saveItemModal()">保存</button>
+    </div>`;
+  document.getElementById('modalOverlay').style.display='flex';
+}
+
+async function saveItemModal(){
+  const name=document.getElementById('f_name').value.trim();
+  if(!name){alert('请输入物品名称');return;}
+  const data={name,cat:parseInt(document.getElementById('f_cat').value),phase:document.getElementById('f_phase').value.trim(),deadline:document.getElementById('f_deadline').value,note:document.getElementById('f_note').value.trim()};
+  if(editingId){
+    const item=items.find(i=>i.id===editingId);
+    if(item){Object.assign(item,data);await saveItem_fb(item);}
+  } else {
+    data.links=[];data.priceHistory=[];data.done=false;data.id=genId();
+    await saveItem_fb(data);
+  }
+  closeModal();
+}
+
+async function modalAddLink(){
+  if(!editingId)return;
+  const url=document.getElementById('modal_lu')?.value.trim();
+  const memo=document.getElementById('modal_lm')?.value.trim()||'';
+  if(!url||!url.startsWith('http')){alert('请输入有效链接');return;}
+  const item=items.find(i=>i.id===editingId);if(!item)return;
+  if(!item.links)item.links=[];
+  item.links.push({url,memo});
+  await saveItem_fb(item);
+  openModal(editingId);
+}
+
+async function removeLink(itemId,idx){
+  const item=items.find(i=>i.id===itemId);
+  if(item?.links){item.links.splice(idx,1);await saveItem_fb(item);openModal(itemId);}
+}
+
+function closeModal(){document.getElementById('modalOverlay').style.display='none';editingId=null;}
+function closeModalOutside(e){if(e.target===document.getElementById('modalOverlay'))closeModal();}
+
+// ============ Auth Listener ============
+auth.onAuthStateChanged(async user=>{
+  currentUser=user;
+  if(user){
+    await ensureFamily();
+    fetchFx();
+  } else {
+    if(unsubscribe){unsubscribe();unsubscribe=null;}
+    items=[];familyId=null;
+    renderApp();
+  }
+});
+</script>
+</body>
+</html>
